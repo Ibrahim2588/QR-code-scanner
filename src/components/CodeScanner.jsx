@@ -1,108 +1,90 @@
 import React, { useEffect, useState } from 'react'
-import { BarCodeScanner, usePermissions } from 'expo-barcode-scanner'
-import { Button, StyleSheet, Text, Vibration, View } from 'react-native'
+import { BarCodeScanner } from 'expo-barcode-scanner'
+import { Vibration } from 'react-native'
 import { ValueModal } from './ValueModal'
-import { useHistorique } from '../hooks/useHistorique'
-import { setData } from '../utils/set-data-on-async-storage'
-import { Historique } from './Historique'
+import { Box, Button, Text, View } from 'native-base'
+import AsyncStorage from '@react-native-async-storage/async-storage'
+import { useIsFocused } from '@react-navigation/native'
 
-export const CodeScanner = () => {
-    const [hasPermissions, setHasPermissions] = useState(false)
+export const CodeScanner = React.memo(() => {
+    const [hasPermission, setHasPermission] = useState(false)
     const [onScanned, setOnScanned] = useState(false)
-    const [perm, getPermission] = usePermissions()
     const [value, setValue] = useState(null)
 
-    const { values, getKeys, addKey } = useHistorique()
+    const isFocused = useIsFocused()
 
-    const scanPermission = () =>
-        (async function () {
-            const { granted, status, expires } = await getPermission()
-            if (granted) {
-                setHasPermissions(true)
-                setOnScanned(false)
-            }
-        })()
-
-    useEffect(() => {
-        scanPermission()
-    }, [])
-
-    const handleScanne = ({ type, data, bounds, target }) => {
-        Vibration.vibrate()
-        setValue(data)
-
-        let date = new Date().getTime()
-
-        setData(date, data)
-
-        setOnScanned(true)
-
-        getKeys()
+    const getBarCodeScannerPermissions = async () => {
+        const { status } = await BarCodeScanner.requestPermissionsAsync()
+        setHasPermission(status === 'granted')
     }
 
     useEffect(() => {
-        console.log(onScanned)
-    }, [onScanned])
+        ;(async function () {
+            await getBarCodeScannerPermissions()
+        })()
+    }, [])
 
-    if (!hasPermissions) {
+    const saveData = async (value) => {
+        let date = new Date().getTime()
+        try {
+            await AsyncStorage.setItem(JSON.stringify(date), value)
+            console.info('AsyncStorage save with succes')
+        } catch (error) {
+            console.log(error)
+        }
+    }
+
+    const handleScanne = ({ data }) => {
+        saveData(data)
+            .then(() => {
+                setOnScanned(true)
+                Vibration.vibrate()
+                setValue(data)
+            })
+            .catch((error) => {
+                console.log('save error', error)
+            })
+    }
+
+    if (!hasPermission) {
         return (
-            <View style={style.container}>
-                <Text>Permission is required for scanning</Text>
-                <Button onPress={scanPermission} title='Set Permission' />
+            <View margin='auto'>
+                <Text>
+                    QR-Scanner à besoin de l'accès a l'appareil photo pour
+                    fonstionner
+                </Text>
+                <Button onPress={() => getBarCodeScannerPermissions()}>
+                    Accorder la permission
+                </Button>
             </View>
         )
     }
 
     return (
-        <View style={style.container}>
-            <View style={style.barCodeBox}>
-                <BarCodeScanner
-                    // barCodeTypes={['QR']}
-                    onBarCodeScanned={onScanned ? undefined : handleScanne}
-                    style={{ width: 600, height: 600 }}
-                />
-            </View>
-            <View style={style.buttonGroup}>
-                {/* <Button
-                    onPress={(event) =>
-                        navigation.navigate('historique', {
-                            values: values,
-                        })
-                    }
-                    title='historique'
-                /> */}
-            </View>
+        <View>
+            <Box
+                justifyContent='center'
+                alignItems='center'
+                borderRadius='xl'
+                borderWidth='1'
+                overflow='hidden'
+                width='56'
+                height='56'
+            >
+                <Text>sssssss</Text>
+                {isFocused ? (
+                    <BarCodeScanner
+                        // barCodeTypes={['QR']}
+                        onBarCodeScanned={onScanned ? undefined : handleScanne}
+                        style={{ width: 500, height: 500 }}
+                    />
+                ) : null}
+            </Box>
             <ValueModal
                 value={value}
                 onScanned={onScanned}
                 setOnScanned={setOnScanned}
             />
-            <Historique values={values} setOnScanned={setOnScanned} />
         </View>
     )
-}
-
-const style = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#fff',
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    barCodeBox: {
-        alignItems: 'center',
-        justifyContent: 'center',
-        overflow: 'hidden',
-        borderRadius: 30,
-        width: 250,
-        height: 250,
-    },
-    buttonGroup: {
-        flex: 0,
-        width: 200,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-around',
-        marginBottom: 20,
-    },
 })

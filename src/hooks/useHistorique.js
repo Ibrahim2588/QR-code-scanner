@@ -1,49 +1,47 @@
 import AsyncStorage from '@react-native-async-storage/async-storage'
-import { useEffect, useState } from 'react'
+import { useIsFocused } from '@react-navigation/native'
+import { useDisclose } from 'native-base'
+import { useEffect, useReducer } from 'react'
+
+function reducer(state, action) {
+    switch (action.type) {
+        case 'ADDITEM':
+            return [...state, action.payload]
+
+        case 'RESET':
+            return []
+    }
+}
 
 export const useHistorique = () => {
-    const [keys, setKeys] = useState([])
-    const [values, setValues] = useState([])
-
-    const addKey = (key) => setKeys([...keys, key])
-    const addValue = (value) => setValues([...values, value])
-
-    const getKeys = () => {
-        ;(async function () {
-            try {
-                let keys = await AsyncStorage.getAllKeys()
-                setKeys(keys)
-            } catch (error) {
-                console.log('historique error', error)
-            }
-        })()
-    }
-
-    const getValues = () => {
-        ;(async function () {
-            keys.map(async (key) => {
-                try {
-                    addValue({
-                        key: key,
-                        value: await AsyncStorage.getItem(key),
-                    })
-                } catch (error) {
-                    console.log('historique error', error)
-                }
-            })
-        })()
-    }
+    const [items, dispatch] = useReducer(reducer, [])
+    const { isOpen, onOpen, onClose } = useDisclose(true)
+    const isFocused = useIsFocused()
 
     useEffect(() => {
-        getKeys()
-    }, [])
+        if (isFocused) {
+            ;(async function () {
+                onOpen()
+                dispatch({ type: 'RESET' })
+                const _keys = await AsyncStorage.getAllKeys()
 
-    useEffect(() => {
-        getValues()
-    }, [keys])
+                _keys.sort().reverse()
+
+                _keys.map(async (key) => {
+                    const _value = await AsyncStorage.getItem(key)
+                    const obj = {
+                        key,
+                        value: _value,
+                    }
+                    dispatch({ type: 'ADDITEM', payload: obj })
+                })
+            })()
+        }
+        onClose()
+    }, [isFocused])
 
     return {
-        getKeys,
-        values,
+        items,
+        isLoading: isOpen,
     }
 }

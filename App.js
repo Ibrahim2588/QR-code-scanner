@@ -1,21 +1,17 @@
+import 'react-native-gesture-handler'
+
+import { NavigationContainer } from '@react-navigation/native'
 import { StatusBar } from 'expo-status-bar'
-import { StyleSheet, View } from 'react-native'
-import { CodeScanner } from './src/components/CodeScanner'
+import { NativeBaseProvider } from 'native-base'
+import { Index } from './src'
 
 export default function App() {
     return (
-        <View style={style.container}>
-            <CodeScanner />
-            <StatusBar style='auto' />
-        </View>
+        <NativeBaseProvider>
+            <NavigationContainer>
+                <Index />
+                <StatusBar style='auto' />
+            </NavigationContainer>
+        </NativeBaseProvider>
     )
 }
-
-const style = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#fff',
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-})

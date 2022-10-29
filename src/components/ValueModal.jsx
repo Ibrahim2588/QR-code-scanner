@@ -1,83 +1,49 @@
-import React, { useCallback } from 'react'
-import {
-    Modal,
-    StyleSheet,
-    Text,
-    View,
-    Button,
-    ToastAndroid,
-} from 'react-native'
-import { useDisclose } from '../hooks/useDisclose'
+import React, { useCallback, useEffect } from 'react'
+import { Button, Modal, Text, useDisclose, useToast } from 'native-base'
+import { useIsFocused } from '@react-navigation/native'
 import * as Clipboard from 'expo-clipboard'
 
 export const ValueModal = React.memo(({ value, onScanned, setOnScanned }) => {
-    const { open, onOpen, onClose } = useDisclose(false)
+    const { isOpen, onOpen, onClose } = useDisclose()
 
-    const onCloseModal = useCallback((event) => {
-        event.preventDefault()
-        setOnScanned(false)
-    }, [])
+    const toast = useToast()
 
+    const isFocused = useIsFocused()
     const copyValue = useCallback(async () => {
         await Clipboard.setStringAsync(value)
-        ToastAndroid.show('Copier', 400)
+        toast.show({ title: 'copier', duration: 3000 })
     }, [value])
 
-    return (
-        <View style={open ? style.centeredView : null}>
-            <Modal
-                // style={{ backgroundColor: '#142c0a' }}
-                animationType='slide'
-                transparent={false}
-                visible={onScanned}
-            >
-                <View style={[style.centeredView, { backgroundColor: '#fff' }]}>
-                    <View style={style.modalView}>
-                        <Text>{value}</Text>
-                        <View style={style.buttonGroup}>
-                            <Button
-                                onPress={copyValue}
-                                title='copie'
-                                color='#408027'
-                            />
-                            <Button onPress={onCloseModal} title='close' />
-                        </View>
-                    </View>
-                </View>
-            </Modal>
-        </View>
-    )
-})
+    useEffect(() => {
+        if (!isOpen) {
+            setOnScanned(false)
+        }
+    }, [isOpen])
 
-const style = StyleSheet.create({
-    modalView: {
-        width: '90%',
-        minHeight: '30%',
-        margin: 20,
-        backgroundColor: '#f9f9f9',
-        borderRadius: 10,
-        padding: 20,
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        shadowColor: '#000',
-        shadowOffset: {
-            width: 0,
-            height: 1,
-        },
-        shadowOpacity: 0.25,
-        shadowRadius: 2,
-        elevation: 2,
-    },
-    centeredView: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    buttonGroup: {
-        // flex: 1,
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignContent: 'center',
-        width: '60%',
-    },
+    useEffect(() => {
+        if (onScanned & isFocused) {
+            onOpen()
+        }
+    }, [onScanned])
+
+    return (
+        <Modal isOpen={isOpen} onClose={onClose}>
+            <Modal.Content width='85%'>
+                <Modal.CloseButton />
+                <Modal.Header>Résultat du scan</Modal.Header>
+                <Modal.Body>
+                    <Text>{value}</Text>
+                </Modal.Body>
+                <Modal.Footer>
+                    <Button
+                        colorScheme='green'
+                        variant='subtle'
+                        onPress={() => copyValue()}
+                    >
+                        copier
+                    </Button>
+                </Modal.Footer>
+            </Modal.Content>
+        </Modal>
+    )
 })
