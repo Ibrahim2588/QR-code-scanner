@@ -1,22 +1,20 @@
 import React, { useCallback } from 'react'
 import {
-    Box,
     HStack,
     IconButton,
     ScrollView,
-    Spinner,
     Text,
     useToast,
     View,
     VStack,
 } from 'native-base'
-import { useHistorique } from '../hooks/useHistorique'
 import { formatDate } from '../utils/format-date'
 import { Ionicons } from '@expo/vector-icons'
 import * as Clipboard from 'expo-clipboard'
+import { useSelector } from 'react-redux'
 
 export const HistoriqueValues = React.memo(() => {
-    const { items, isLoading } = useHistorique()
+    const items = useSelector((state) => state.historique)
 
     const toast = useToast()
 
@@ -24,14 +22,6 @@ export const HistoriqueValues = React.memo(() => {
         await Clipboard.setStringAsync(value)
         toast.show({ duration: 3000, description: 'copier' })
     }, [])
-
-    if (isLoading) {
-        return (
-            <Box margin='auto'>
-                <Spinner size='lg' />
-            </Box>
-        )
-    }
 
     return (
         <ScrollView>

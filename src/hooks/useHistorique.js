@@ -1,47 +1,43 @@
 import AsyncStorage from '@react-native-async-storage/async-storage'
-import { useIsFocused } from '@react-navigation/native'
-import { useDisclose } from 'native-base'
-import { useEffect, useReducer } from 'react'
-
-function reducer(state, action) {
-    switch (action.type) {
-        case 'ADDITEM':
-            return [...state, action.payload]
-
-        case 'RESET':
-            return []
-    }
-}
+import { useEffect, useState } from 'react'
+import { useDispatch } from 'react-redux'
+import { addHistoriqueElement } from '../store/slices/historique.slice'
 
 export const useHistorique = () => {
-    const [items, dispatch] = useReducer(reducer, [])
-    const { isOpen, onOpen, onClose } = useDisclose(true)
-    const isFocused = useIsFocused()
+    const [isFine, setIsFine] = useState(false)
+
+    const dispatch = useDispatch()
 
     useEffect(() => {
-        if (isFocused) {
-            ;(async function () {
-                onOpen()
-                dispatch({ type: 'RESET' })
+        async function getHistorique() {
+            try {
                 const _keys = await AsyncStorage.getAllKeys()
 
-                _keys.sort().reverse()
+                _keys.sort()
 
                 _keys.map(async (key) => {
-                    const _value = await AsyncStorage.getItem(key)
-                    const obj = {
-                        key,
-                        value: _value,
+                    try {
+                        const _value = await AsyncStorage.getItem(key)
+                        const obj = {
+                            key,
+                            value: _value,
+                        }
+                        dispatch(addHistoriqueElement(obj))
+                    } catch (e) {
+                        console.log(e)
                     }
-                    dispatch({ type: 'ADDITEM', payload: obj })
                 })
-            })()
+            } catch (error) {
+                console.log('useHistorique error', error)
+            } finally {
+                setIsFine(true)
+            }
         }
-        onClose()
-    }, [isFocused])
+
+        getHistorique()
+    }, [])
 
     return {
-        items,
-        isLoading: isOpen,
+        isFine,
     }
 }

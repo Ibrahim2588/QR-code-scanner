@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import { BarCodeScanner } from 'expo-barcode-scanner'
 import { Linking, Vibration } from 'react-native'
 import { ValueModal } from './ValueModal'
@@ -7,10 +7,15 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 import { useIsFocused } from '@react-navigation/native'
 import { isUrl } from '../utils/is-url'
 
+import { useDispatch } from 'react-redux'
+import { addHistoriqueElement } from '../store/slices/historique.slice'
+
 export const CodeScanner = React.memo(() => {
     const [hasPermission, setHasPermission] = useState(false)
     const [onScanned, setOnScanned] = useState(false)
     const [value, setValue] = useState(null)
+
+    const dispatch = useDispatch()
 
     const isFocused = useIsFocused()
 
@@ -25,22 +30,25 @@ export const CodeScanner = React.memo(() => {
         })()
     }, [])
 
-    const saveData = async (value) => {
+    const saveData = useCallback(async (value) => {
         let date = new Date().getTime()
         try {
             await AsyncStorage.setItem(JSON.stringify(date), value)
+            dispatch(addHistoriqueElement({ key: date, value }))
             console.info('AsyncStorage save with succes')
         } catch (error) {
             console.log(error)
         }
-    }
+    }, [])
 
-    const handleScanne = ({ data }) => {
+    const handleScanne = useCallback(({ data }) => {
         saveData(data)
             .then(() => {
                 setOnScanned(true)
                 Vibration.vibrate()
                 setValue(data)
+            })
+            .then(() => {
                 if (isUrl(data)) {
                     Linking.openURL(data)
                 }
@@ -48,7 +56,7 @@ export const CodeScanner = React.memo(() => {
             .catch((error) => {
                 console.log('save error', error)
             })
-    }
+    }, [])
 
     if (!hasPermission) {
         return (

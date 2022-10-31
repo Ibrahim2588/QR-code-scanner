@@ -3,9 +3,24 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
 import { Historique } from './pages/Historique'
 import { Scanner } from './pages/Scanner'
 
+import * as SplashScreen from 'expo-splash-screen'
+
+import { useHistorique } from './hooks/useHistorique'
+import { useEffect } from 'react'
+
 const TabNav = createBottomTabNavigator()
 
+SplashScreen.preventAutoHideAsync()
+
 export const Index = () => {
+    const { isFine } = useHistorique()
+
+    useEffect(() => {
+        if (isFine) {
+            SplashScreen.hideAsync()
+        }
+    }, [isFine])
+
     return (
         <TabNav.Navigator>
             <TabNav.Screen
