@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react'
 import { BarCodeScanner } from 'expo-barcode-scanner'
-import { Vibration } from 'react-native'
+import { Linking, Vibration } from 'react-native'
 import { ValueModal } from './ValueModal'
 import { Box, Button, Text, View } from 'native-base'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { useIsFocused } from '@react-navigation/native'
+import { isUrl } from '../utils/is-url'
 
 export const CodeScanner = React.memo(() => {
     const [hasPermission, setHasPermission] = useState(false)
@@ -40,6 +41,9 @@ export const CodeScanner = React.memo(() => {
                 setOnScanned(true)
                 Vibration.vibrate()
                 setValue(data)
+                if (isUrl(data)) {
+                    Linking.openURL(data)
+                }
             })
             .catch((error) => {
                 console.log('save error', error)
